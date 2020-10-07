@@ -13,3 +13,11 @@ test_image
 # inferenced image
 GradCAM
 GradCAM2
+
+# backup
+*_backup.py
+*_beta.py
+
+# data
+MergeData.py
+CreateData.py
