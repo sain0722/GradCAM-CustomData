@@ -1,7 +1,8 @@
 import torch
-from torchvision import datasets, models, transforms
+from torchvision import transforms
 import numpy as np
 import cv2
+
 
 def preprocess_image(img):
     means = [0.485, 0.456, 0.406]
@@ -37,28 +38,6 @@ def show_cam_on_image(img, mask):
 
     return cam
 
-
-def predict(model, test_image, print_class=False):
-
-    chosen_transforms = make_transforms()
-    transform = chosen_transforms['data/val']
-    test_image_tensor = transform(test_image)
-
-    if torch.cuda.is_available():
-        test_image_tensor = test_image_tensor.view(1, 3, 227, 227).cuda()
-    else:
-        test_image_tensor = test_image_tensor.view(1, 3, 227, 227)
-
-    with torch.no_grad():
-        model.eval()
-        # Model outputs log probabilities
-        out = model(test_image_tensor)
-        ps = torch.exp(out)
-        topk, topclass = ps.topk(1, dim=1)
-        class_name = idx_to_class[topclass.cpu().numpy()[0][0]]
-        if print_class:
-            print("Output class :  ", class_name)
-    return class_name
 
 def make_transforms():
 
