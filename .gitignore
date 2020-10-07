@@ -2,4 +2,14 @@
 .idea
 data
 Benchmarkimage_20200821
+__pycache__
+*.pt
+
+
+
+# test image
+test_image
+
+# inferenced image
 GradCAM
+GradCAM2
