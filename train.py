@@ -10,7 +10,7 @@ from util import make_transforms
 import os
 import time
 import copy
-
+import argparse
 cwd = os.getcwd()
 
 # data 폴더에 원하는 데이터를 형식에 맞추어 저장
@@ -105,7 +105,28 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=10):
     model.load_state_dict(best_model_wts)
     return model
 
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--use-cuda', action='store_true', default=True,
+                        help='Use NVIDIA GPU acceleration')
+    parser.add_argument('--epoch', type=int, default=6,
+                        help='Number of epoch')
+    parser.add_argument('--save', type=str, default='model',
+                        help='Name of saved model')
+    args = parser.parse_args()
+    args.use_cuda = args.use_cuda and torch.cuda.is_available()
+    if args.use_cuda:
+        print("Using GPU for acceleration")
+    else:
+        print("Using CPU for computation")
+
+    return args
+
+
 if __name__ == '__main__':
+
+
+    args = get_args()
 
     chosen_transforms = make_transforms()
 
@@ -117,23 +138,25 @@ if __name__ == '__main__':
     print("Train Data Set size is: ", train_size)
     print("Class Names are: ", class_names)
     inputs, classes = next(iter(train_loader))
-    print(inputs.shape, classes.shape)
+#    print(inputs.shape, classes.shape)
 
     ## Set up Pre-Trained Model
 
     CLASS_NUM = len(class_names)
-
+    EPOCHS = args.epoch
+    SAVED_NAME = args.save + '.pt'
     ## Load pretrained model
-    resnet50 = models.resnet50(pretrained=True)
+    resnet50 = models.resnet50(pretrained=False)
 
     # Freeze model parameters
-    for param in resnet50.parameters():
-        param.requires_grad = False
+    # for param in resnet50.parameters():
+    #     param.requires_grad = False
 
     ## Change the final layer of the resnet model
     # Change the final layer of ResNet50 Model for Transfer Learning
     fc_inputs = resnet50.fc.in_features
 
+    # resnet50.fc = nn.Linear(fc_inputs, CLASS_NUM)
     resnet50.fc = nn.Sequential(
         nn.Linear(fc_inputs, 128),
         nn.ReLU(),
@@ -141,10 +164,11 @@ if __name__ == '__main__':
         nn.Linear(128, CLASS_NUM)
     )
 
+
     # Convert model to be used on GPU
     resnet50 = resnet50.to(device)
 
-    summary(resnet50, (3, 227, 227))
+    # summary(resnet50, (3, 227, 227))
 
     # Define Optimizer and Loss Function
     criterion = nn.CrossEntropyLoss()
@@ -156,14 +180,14 @@ if __name__ == '__main__':
     dataloaders = {}
     dataset_sizes = {}
     idx_to_class = {}
-    batch_size = 16
-    # batch_size = 256
+    batch_size = 64
     dataloaders['train'], dataset_sizes['train'], class_names = load_dataset('data/train', batch_size)
     dataloaders['val'], dataset_sizes['val'], _ = load_dataset('data/val', batch_size)
     for idx, label in enumerate(class_names):
         idx_to_class[idx] = label
 
-    base_model = train_model(resnet50, criterion, optimizer, exp_lr_scheduler, num_epochs=1)
-
-    torch.save(base_model, cwd + '/model.pt')
-    torch.save(base_model.state_dict(), cwd + '/model_state_dict.pt')
+    base_model = train_model(resnet50, criterion, optimizer, exp_lr_scheduler, num_epochs=EPOCHS)
+    saved_model = os.path.join(cwd, SAVED_NAME)
+    torch.save(base_model, saved_model)
+    # torch.save(base_model.state_dict(), cwd + '/model_state_dict.pt')
+    print("Save Complete to ", saved_model)
