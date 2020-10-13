@@ -4,13 +4,15 @@ import torch.optim as optim
 from torch.optim import lr_scheduler
 from torchvision import datasets, models
 from torch.utils.data import DataLoader
-from torchsummary import summary
+# from torchsummary import summary
 
 from util import make_transforms
 import os
 import time
 import copy
 import argparse
+from tensorboardX import SummaryWriter
+
 cwd = os.getcwd()
 
 # data 폴더에 원하는 데이터를 형식에 맞추어 저장
@@ -82,6 +84,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=10):
                 # We want variables to hold the loss statistics
                 current_loss += loss.item() * inputs.size(0)
                 current_corrects += torch.sum(preds == labels.data)
+                summary.add_scalar('loss/current_loss', current_loss, epoch)
 
             epoch_loss = current_loss / dataset_sizes[phase]
             epoch_acc = current_corrects.double() / dataset_sizes[phase]
@@ -93,6 +96,8 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=10):
             if phase == 'val' and epoch_acc > best_acc:
                 best_acc = epoch_acc
                 best_model_wts = copy.deepcopy(model.state_dict())
+        summary.add_scalar('loss/loss', epoch_loss, epoch)
+        summary.add_scalar('acc/acc', epoch_acc, epoch)
 
         print()
 
@@ -127,7 +132,7 @@ if __name__ == '__main__':
 
 
     args = get_args()
-
+    summary = SummaryWriter()
     chosen_transforms = make_transforms()
 
 
@@ -180,7 +185,7 @@ if __name__ == '__main__':
     dataloaders = {}
     dataset_sizes = {}
     idx_to_class = {}
-    batch_size = 64
+    batch_size = 4
     dataloaders['train'], dataset_sizes['train'], class_names = load_dataset('data/train', batch_size)
     dataloaders['val'], dataset_sizes['val'], _ = load_dataset('data/val', batch_size)
     for idx, label in enumerate(class_names):
